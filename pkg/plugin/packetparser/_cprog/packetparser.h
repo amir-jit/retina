@@ -5,6 +5,8 @@
 // The maximum length of the TCP options field.
 #define MAX_TCP_OPTIONS_LEN 40
 
+#define MONITOR_AGGREGATE 0
+
 typedef enum
 {
     FROM_ENDPOINT = 0,

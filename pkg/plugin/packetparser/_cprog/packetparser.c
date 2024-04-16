@@ -6,6 +6,7 @@
 #include "bpf_endian.h"
 #include "packetparser.h"
 #include "retina_filter.c"
+#include "conntrack.c"
 #include "dynamic.h"
 
 char __license[] SEC("license") = "Dual MIT/GPL";
@@ -226,8 +227,31 @@ static void parse(struct __sk_buff *skb, direction d)
 	{
 		return;
 	}
-
-	bpf_perf_event_output(skb, &packetparser_events, BPF_F_CURRENT_CPU, &p, sizeof(p));
+	// If MONITOR_AGGREGATE is 1, we will sent the packet to the perf buffer if the packet contains unseen flags.
+	if (MONITOR_AGGREGATE == 1) {
+		// Check if packet is TCP
+		if (ip->protocol == IPPROTO_TCP) {
+			// Convert packet to 5 tuple.
+			struct conn_key key = {
+				.src_ip = p.src_ip,
+				.dst_ip = p.dst_ip,
+				.src_port = p.src_port,
+				.dst_port = p.dst_port,
+				.protocol = p.proto
+			};
+			// Check if the packet flags have been seen before.
+			if (check_flags(&key, p.tcp_metadata.syn | p.tcp_metadata.ack | p.tcp_metadata.fin | p.tcp_metadata.rst | p.tcp_metadata.psh | p.tcp_metadata.urg)) {
+				// If the flags have been seen before, process the packet in the conntrack map to update the timestamp and then return.
+				process_packet(&key, p.tcp_metadata.syn | p.tcp_metadata.ack | p.tcp_metadata.fin | p.tcp_metadata.rst | p.tcp_metadata.psh | p.tcp_metadata.urg);
+				return;
+			}
+			// Process the packet in the conntrack map.
+			process_packet(&key, p.tcp_metadata.syn | p.tcp_metadata.ack | p.tcp_metadata.fin | p.tcp_metadata.rst | p.tcp_metadata.psh | p.tcp_metadata.urg);
+		}
+		bpf_perf_event_output(skb, &packetparser_events, BPF_F_CURRENT_CPU, &p, sizeof(p));
+	} else {
+		bpf_perf_event_output(skb, &packetparser_events, BPF_F_CURRENT_CPU, &p, sizeof(p));
+	}
 }
 
 SEC("classifier_endpoint_ingress")

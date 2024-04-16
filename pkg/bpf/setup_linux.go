@@ -10,6 +10,7 @@ import (
 	"github.com/cilium/cilium/pkg/mountinfo"
 	"github.com/microsoft/retina/pkg/log"
 	plugincommon "github.com/microsoft/retina/pkg/plugin/common"
+	"github.com/microsoft/retina/pkg/plugin/conntrack"
 	"github.com/microsoft/retina/pkg/plugin/filter"
 	"go.uber.org/zap"
 	"golang.org/x/sys/unix"
@@ -75,4 +76,12 @@ func Setup(l *log.ZapLogger) {
 		l.Panic("Failed to initialize filter map", zap.Error(err))
 	}
 	l.Info("Filter map initialized successfully", zap.String("path", plugincommon.FilterMapPath), zap.String("Map name", plugincommon.FilterMapName))
+
+	// Initialize the conntrack map.
+	// This will create the conntrack map in kernel and pin it to /sys/fs/bpf.
+	_, err = conntrack.Init()
+	if err != nil {
+		l.Panic("Failed to initialize conntrack map", zap.Error(err))
+	}
+	l.Info("Conntrack map initialized successfully", zap.String("path", plugincommon.ConntrackMapPath))
 }

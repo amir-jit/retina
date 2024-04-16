@@ -74,22 +74,9 @@ func (ct *Conntrack) Close() {
 	}
 }
 
-type connKey struct {
-	SrcIP    uint32
-	DstIP    uint32
-	SrcPort  uint16
-	DstPort  uint16
-	Protocol uint8
-}
-
-type connVal struct {
-	Timestamp uint64
-	Flags     uint32
-}
-
 func (ct *Conntrack) gc(timeout time.Duration) {
-	var key, nextKey connKey
-	var value connVal
+	var key, nextKey conntrackConnKey
+	var value conntrackConnValue
 
 	for {
 		// Get the next key

@@ -4,8 +4,6 @@
 #include "vmlinux.h"
 #include "bpf_helpers.h"
 
-char __license[] SEC("license") = "Dual MIT/GPL";
-
 struct conn_key {
     __u32 src_ip;
     __u32 dst_ip;

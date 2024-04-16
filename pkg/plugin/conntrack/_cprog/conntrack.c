@@ -33,15 +33,17 @@ void process_packet(struct conn_key *key, __u8 tcp_flags)
     value = bpf_map_lookup_elem(&conntrack_map, key);
     if (!value) {
         // If the connection is not in the map, add it.
-        struct conn_value new_value = {};
-        new_value.flags = tcp_flags;
-        bpf_map_update_elem(&conntrack_map, key, &new_value, BPF_ANY);
+        struct conn_value new_value = {
+            .timestamp = bpf_ktime_get_ns(),
+            .flags = tcp_flags,
+        };
+        bpf_map_update_elem(&conntrack_map, key, &new_value, BPF_NOEXIST);
     } else {
         // If the connection is in the map, update the flags.
         value->flags |= tcp_flags;
+        // Update the timestamp.
+        value->timestamp = bpf_ktime_get_ns();
     }
-    // Update the timestamp.
-    value->timestamp = bpf_ktime_get_ns();
 }
 
 bool check_flags(struct conn_key *key, __u32 packet_flags)

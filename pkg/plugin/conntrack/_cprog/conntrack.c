@@ -53,7 +53,12 @@ int ct_process_packet(struct ct_key *key, __u8 tcp_flags)
             .timestamp = bpf_ktime_get_ns(),
             .flags = tcp_flags,
         };
-        bpf_map_update_elem(&retina_conntrack_map, &new_key, &new_value, BPF_NOEXIST);
+        int ret = bpf_map_update_elem(&retina_conntrack_map, &new_key, &new_value, BPF_NOEXIST);
+        if (ret != 0) {
+            // Print error message
+            bpf_trace_printk("Failed to update map: %d\n", ret);
+        }
+
     } else {
         // If FIN flag is set, set its state to closed.
         // Checking the least significant bit of tcp_flags since it is the FIN flag.

@@ -78,6 +78,8 @@ func (ct *Conntrack) gc(timeout time.Duration) {
 	var key, nextKey conntrackConnKey
 	var value conntrackConnValue
 
+	ct.l.Info("Running Conntrack GC", zap.Duration("timeout", timeout))
+
 	for {
 		// Get the next key
 		err := ct.ctmap.NextKey(&key, &nextKey)

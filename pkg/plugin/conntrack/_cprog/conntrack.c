@@ -29,9 +29,6 @@ struct {
 
 int ct_process_packet(struct ct_key *key, __u8 tcp_flags)
 {
-    struct ct_value *value;
-    __builtin_memset(value, 0, sizeof(value));
-
     // Check if key is not NULL.
     if (!key) {
         return 0;
@@ -46,18 +43,15 @@ int ct_process_packet(struct ct_key *key, __u8 tcp_flags)
     new_key.dst_port = key->dst_port;
     new_key.protocol = key->protocol;
 
-    value = bpf_map_lookup_elem(&retina_conntrack_map, &new_key);
+    struct ct_value *value = bpf_map_lookup_elem(&retina_conntrack_map, &new_key);
     if (!value) {
         // If the connection is not in the map, add it.
-        struct ct_value new_value = {
-            .timestamp = bpf_ktime_get_ns(),
-            .flags = tcp_flags,
-        };
-        int ret = bpf_map_update_elem(&retina_conntrack_map, &new_key, &new_value, BPF_NOEXIST);
-        if (ret != 0) {
-            // Print error message
-            bpf_trace_printk("Failed to update map: %d\n", ret);
-        }
+        struct ct_value new_value;
+        __builtin_memset(&new_value, 0, sizeof(new_value));
+        new_value.timestamp = bpf_ktime_get_ns();
+        new_value.flags = tcp_flags;
+        new_value.isClosed = 0;
+        bpf_map_update_elem(&retina_conntrack_map, &new_key, &new_value, BPF_ANY);
 
     } else {
         // If FIN flag is set, set its state to closed.
@@ -75,9 +69,6 @@ int ct_process_packet(struct ct_key *key, __u8 tcp_flags)
 
 bool ct_check_flags(struct ct_key *key, __u32 packet_flags)
 {
-    struct ct_value *value;
-    __builtin_memset(value, 0, sizeof(value));
-
     // Check if key is not NULL.
     if (!key) {
         return false;
@@ -92,12 +83,13 @@ bool ct_check_flags(struct ct_key *key, __u32 packet_flags)
     new_key.dst_port = key->dst_port;
     new_key.protocol = key->protocol;
         
-    value = bpf_map_lookup_elem(&retina_conntrack_map, &new_key);
-    if (!value)
+    struct ct_value *value = bpf_map_lookup_elem(&retina_conntrack_map, &new_key);
+    if (!value) {
         return false; // If the connection is not in the map, return false.
-
-    if ((value->flags & packet_flags) == packet_flags)
+    }
+    if ((value->flags & packet_flags) == packet_flags) {
         return true; // If all flags in packet_flags have been seen before, return true.
+    }
 
     return false; // If not all flags in packet_flags have been seen before, return false.
 }

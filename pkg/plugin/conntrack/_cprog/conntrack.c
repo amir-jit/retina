@@ -54,7 +54,13 @@ int ct_process_packet(struct conn_key *key, __u8 tcp_flags)
         };
         bpf_map_update_elem(&retina_conntrack_map, &new_key, &new_value, BPF_NOEXIST);
     } else {
-        // If the connection is in the map, update the flags.
+        // If FIN flag is set, remove the connection from the map.
+        // Checking the least significant bit of tcp_flags since it is the FIN flag.
+        if (tcp_flags & 0x01) {
+            bpf_map_delete_elem(&retina_conntrack_map, &new_key);
+            return 0;
+        }
+        // Update seen flags.
         value->flags |= tcp_flags;
         // Update the timestamp.
         value->timestamp = bpf_ktime_get_ns();

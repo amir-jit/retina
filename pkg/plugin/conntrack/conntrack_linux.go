@@ -104,6 +104,10 @@ func (ct *Conntrack) gc(timeout time.Duration) {
 			}
 		}
 
+		// Log each field of the conntrack entry key and value
+		ct.l.Info("ct_key", zap.Uint32("src_ip", key.SrcIp), zap.Uint32("dst_ip", key.DstIp), zap.Uint16("src_port", key.SrcPort), zap.Uint16("dst_port", key.DstPort), zap.Uint8("proto", key.Protocol))
+		ct.l.Info("ct_value", zap.Time("last_seen", time.Unix(0, lastSeen)), zap.Uint32("flags", value.Flags))
+
 		// Move on to the next key
 		key = nextKey
 	}
@@ -111,7 +115,7 @@ func (ct *Conntrack) gc(timeout time.Duration) {
 
 // Start starts the Conntrack GC loop. It runs every 30 seconds and deletes entries older than 5 minutes.
 func (ct *Conntrack) Run(ctx context.Context) error {
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(30 * time.Second) //nolint:gomnd // 30 seconds
 	defer ticker.Stop()
 
 	for {
@@ -120,7 +124,7 @@ func (ct *Conntrack) Run(ctx context.Context) error {
 			ct.Close()
 			return nil
 		case <-ticker.C:
-			ct.gc(5 * time.Minute)
+			ct.gc(5 * time.Minute) //nolint:gomnd // 5 minutes
 		}
 	}
 }

@@ -6,7 +6,6 @@ package conntrack
 
 import (
 	"context"
-	"errors"
 	"sync"
 	"time"
 
@@ -18,7 +17,7 @@ import (
 	"go.uber.org/zap"
 )
 
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go@master -cc clang-14 -cflags "-g -O2 -Wall -D__TARGET_ARCH_${GOARCH} -Wall" -target ${GOARCH} -type conn_key conntrack ./_cprog/conntrack.c -- -I../lib/_${GOARCH} -I../lib/common/libbpf/_src
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go@master -cc clang-14 -cflags "-g -O2 -Wall -D__TARGET_ARCH_${GOARCH} -Wall" -target ${GOARCH} -type ct_key conntrack ./_cprog/conntrack.c -- -I../lib/_${GOARCH} -I../lib/common/libbpf/_src
 
 var (
 	ct   *Conntrack
@@ -74,43 +73,52 @@ func (ct *Conntrack) Close() {
 	}
 }
 
+// gc loops through the conntrack map and deletes entries older than the specified timeout.
 func (ct *Conntrack) gc(timeout time.Duration) {
-	var key, nextKey conntrackConnKey
-	var value conntrackConnValue
+	ct.l.Debug("Running Conntrack GC loop")
 
-	ct.l.Info("Running Conntrack GC", zap.Duration("timeout", timeout))
+	var key conntrackCtKey
+	var value conntrackCtValue
 
-	for {
-		// Get the next key
-		err := ct.ctmap.NextKey(&key, &nextKey)
-		if errors.Is(err, ebpf.ErrKeyNotExist) {
-			break
-		}
+	iter := ct.ctmap.Iterate()
+	for iter.Next(&key, &value) {
+		ct.l.Info("ct_key", zap.Uint32("src_ip", key.SrcIp), zap.Uint32("dst_ip", key.DstIp), zap.Uint16("src_port", key.SrcPort), zap.Uint16("dst_port", key.DstPort), zap.Uint8("proto", key.Protocol))
+		ct.l.Info("ct_value", zap.Uint64("timestamp", value.Timestamp), zap.Uint8("is_closed", value.IsClosed))
 
-		// Get the value for the current key
-		err = ct.ctmap.Lookup(&key, &value)
-		if err != nil {
-			ct.l.Error("Lookup failed", zap.Error(err))
+		// If the entry is marked as isClosed, delete the key and continue
+		if value.IsClosed == 1 {
+			ct.l.Debug("deleting conntrack entry since it is marked as closed",
+				zap.Uint32("src_ip", key.SrcIp),
+				zap.Uint32("dst_ip", key.DstIp),
+				zap.Uint16("src_port", key.SrcPort),
+				zap.Uint16("dst_port", key.DstPort),
+				zap.Uint8("proto", key.Protocol),
+			)
+			err := ct.ctmap.Delete(&key)
+			if err != nil {
+				ct.l.Error("failed to delete conntrack entry", zap.Error(err))
+			}
 			continue
 		}
 
 		// If the last seen time is older than the timeout, delete the key
 		// Convert the timestamp from nanoseconds to a time.Time value
 		lastSeen := ktime.MonotonicOffset.Nanoseconds() + int64(value.Timestamp)
-		if time.Since(time.Unix(0, lastSeen)) > timeout {
-			err = ct.ctmap.Delete(&key)
+
+		if time.Since(time.Unix(lastSeen, 0)) > timeout {
+			ct.l.Debug("deleting conntrack entry since it is older than the timeout",
+				zap.Uint32("src_ip", key.SrcIp), zap.Uint32("dst_ip", key.DstIp),
+				zap.Uint16("src_port", key.SrcPort),
+				zap.Uint16("dst_port", key.DstPort),
+				zap.Uint8("proto", key.Protocol),
+			)
+			err := ct.ctmap.Delete(&key)
 			if err != nil {
-				ct.l.Error("Delete failed", zap.Error(err))
+				ct.l.Error("failed to delete conntrack entry", zap.Error(err))
 			}
 		}
-
-		// Log each field of the conntrack entry key and value
-		ct.l.Info("ct_key", zap.Uint32("src_ip", key.SrcIp), zap.Uint32("dst_ip", key.DstIp), zap.Uint16("src_port", key.SrcPort), zap.Uint16("dst_port", key.DstPort), zap.Uint8("proto", key.Protocol))
-		ct.l.Info("ct_value", zap.Time("last_seen", time.Unix(0, lastSeen)), zap.Uint32("flags", value.Flags))
-
-		// Move on to the next key
-		key = nextKey
 	}
+
 }
 
 // Start starts the Conntrack GC loop. It runs every 30 seconds and deletes entries older than 5 minutes.

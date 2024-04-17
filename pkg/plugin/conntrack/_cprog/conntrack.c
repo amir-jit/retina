@@ -4,7 +4,7 @@
 #include "vmlinux.h"
 #include "bpf_helpers.h"
 
-struct conn_key {
+struct ct_key {
     __u32 src_ip;
     __u32 dst_ip;
     __u16 src_port;
@@ -12,24 +12,25 @@ struct conn_key {
     __u8 protocol;
 };
 
-struct conn_value {
+struct ct_value {
     __u64 timestamp;
     __u32 flags;
+    __u8 isClosed;
 };
 
 struct {
     __uint(type, BPF_MAP_TYPE_HASH);
-    __type(key, struct conn_key);
-    __type(value, struct conn_value);
+    __type(key, struct ct_key);
+    __type(value, struct ct_value);
     __uint(max_entries, 4096);
     __uint(pinning, LIBBPF_PIN_BY_NAME); // Pinned to /sys/fs/bpf.
 } retina_conntrack_map SEC(".maps");
 
 
-int ct_process_packet(struct conn_key *key, __u8 tcp_flags)
+int ct_process_packet(struct ct_key *key, __u8 tcp_flags)
 {
-    struct conn_value *value;
-    __builtin_memset(value, 0, sizeof(value));
+    struct ct_value *value;
+    __builtin_memset(value, 0, sizeof(struct ct_value));
 
     // Check if key is not NULL.
     if (!key) {
@@ -37,8 +38,8 @@ int ct_process_packet(struct conn_key *key, __u8 tcp_flags)
     }
 
     // Reconstruct the key
-    struct conn_key new_key;
-    __builtin_memset(&new_key, 0, sizeof(new_key));
+    struct ct_key new_key;
+    __builtin_memset(&new_key, 0, sizeof(struct ct_key));
     new_key.src_ip = key->src_ip;
     new_key.dst_ip = key->dst_ip;
     new_key.src_port = key->src_port;
@@ -48,17 +49,16 @@ int ct_process_packet(struct conn_key *key, __u8 tcp_flags)
     value = bpf_map_lookup_elem(&retina_conntrack_map, &new_key);
     if (!value) {
         // If the connection is not in the map, add it.
-        struct conn_value new_value = {
+        struct ct_value new_value = {
             .timestamp = bpf_ktime_get_ns(),
             .flags = tcp_flags,
         };
         bpf_map_update_elem(&retina_conntrack_map, &new_key, &new_value, BPF_NOEXIST);
     } else {
-        // If FIN flag is set, remove the connection from the map.
+        // If FIN flag is set, set its state to closed.
         // Checking the least significant bit of tcp_flags since it is the FIN flag.
         if (tcp_flags & 0x01) {
-            bpf_map_delete_elem(&retina_conntrack_map, &new_key);
-            return 0;
+            value->isClosed = 1;
         }
         // Update seen flags.
         value->flags |= tcp_flags;
@@ -68,10 +68,10 @@ int ct_process_packet(struct conn_key *key, __u8 tcp_flags)
     return 0;
 }
 
-bool ct_check_flags(struct conn_key *key, __u32 packet_flags)
+bool ct_check_flags(struct ct_key *key, __u32 packet_flags)
 {
-    struct conn_value *value;
-    __builtin_memset(value, 0, sizeof(value));
+    struct ct_value *value;
+    __builtin_memset(value, 0, sizeof(struct ct_value));
 
     // Check if key is not NULL.
     if (!key) {
@@ -79,8 +79,8 @@ bool ct_check_flags(struct conn_key *key, __u32 packet_flags)
     }
     
     // Reconstruct the key
-    struct conn_key new_key;
-    __builtin_memset(&new_key, 0, sizeof(new_key));
+    struct ct_key new_key;
+    __builtin_memset(&new_key, 0, sizeof(struct ct_key));
     new_key.src_ip = key->src_ip;
     new_key.dst_ip = key->dst_ip;
     new_key.src_port = key->src_port;

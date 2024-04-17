@@ -12,7 +12,7 @@ import (
 	"github.com/cilium/ebpf"
 )
 
-type packetparserConnKey struct {
+type packetparserCtKey struct {
 	SrcIp    uint32
 	DstIp    uint32
 	SrcPort  uint16
@@ -21,10 +21,11 @@ type packetparserConnKey struct {
 	_        [3]byte
 }
 
-type packetparserConnValue struct {
+type packetparserCtValue struct {
 	Timestamp uint64
 	Flags     uint32
-	_         [4]byte
+	IsClosed  uint8
+	_         [3]byte
 }
 
 type packetparserMapKey struct {

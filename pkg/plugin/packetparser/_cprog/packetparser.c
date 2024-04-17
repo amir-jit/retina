@@ -232,7 +232,7 @@ static void parse(struct __sk_buff *skb, direction d)
 		// Check if packet is TCP
 		if (ip->protocol == IPPROTO_TCP) {
 			// Convert packet to 5 tuple.
-			struct conn_key key;
+			struct ct_key key;
 			__builtin_memset(&key, 0, sizeof(key));
 			key.src_ip = p.src_ip;
 			key.dst_ip = p.dst_ip;

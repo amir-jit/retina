@@ -30,7 +30,7 @@ struct {
 int ct_process_packet(struct ct_key *key, __u8 tcp_flags)
 {
     struct ct_value *value;
-    __builtin_memset(value, 0, sizeof(struct ct_value));
+    __builtin_memset(value, 0, sizeof(value));
 
     // Check if key is not NULL.
     if (!key) {
@@ -39,7 +39,7 @@ int ct_process_packet(struct ct_key *key, __u8 tcp_flags)
 
     // Reconstruct the key
     struct ct_key new_key;
-    __builtin_memset(&new_key, 0, sizeof(struct ct_key));
+    __builtin_memset(&new_key, 0, sizeof(new_key));
     new_key.src_ip = key->src_ip;
     new_key.dst_ip = key->dst_ip;
     new_key.src_port = key->src_port;
@@ -71,7 +71,7 @@ int ct_process_packet(struct ct_key *key, __u8 tcp_flags)
 bool ct_check_flags(struct ct_key *key, __u32 packet_flags)
 {
     struct ct_value *value;
-    __builtin_memset(value, 0, sizeof(struct ct_value));
+    __builtin_memset(value, 0, sizeof(value));
 
     // Check if key is not NULL.
     if (!key) {
@@ -80,7 +80,7 @@ bool ct_check_flags(struct ct_key *key, __u32 packet_flags)
     
     // Reconstruct the key
     struct ct_key new_key;
-    __builtin_memset(&new_key, 0, sizeof(struct ct_key));
+    __builtin_memset(&new_key, 0, sizeof(new_key));
     new_key.src_ip = key->src_ip;
     new_key.dst_ip = key->dst_ip;
     new_key.src_port = key->src_port;

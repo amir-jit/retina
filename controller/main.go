@@ -229,7 +229,6 @@ func main() {
 			os.Exit(1)
 		}
 		go func() {
-			mainLogger.Info("Starting conntrack GC loop")
 			err := ct.Run(ctx)
 			if err != nil {
 				mainLogger.Error("conntrack run failed", zap.Error(err))

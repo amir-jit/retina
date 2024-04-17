@@ -118,6 +118,8 @@ func (ct *Conntrack) Run(ctx context.Context) error {
 	ticker := time.NewTicker(30 * time.Second) //nolint:gomnd // 30 seconds
 	defer ticker.Stop()
 
+	ct.l.Info("Starting Conntrack GC loop")
+
 	for {
 		select {
 		case <-ctx.Done():

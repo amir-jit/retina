@@ -9,4 +9,6 @@ const (
 	FilterMapName = "retina_filter_map"
 	// ConntrackMapPath is the path to the BPF conntrack map.
 	ConntrackMapPath = "/sys/fs/bpf"
+	// ConntrackMapName is the name of the BPF conntrack map
+	ConntrackMapName = "retina_conntrack_map"
 )

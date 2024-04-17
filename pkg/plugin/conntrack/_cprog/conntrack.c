@@ -10,7 +10,7 @@ struct conn_key {
     __u16 src_port;
     __u16 dst_port;
     __u8 protocol;
-} __attribute__((packed));
+};
 
 struct conn_value {
     __u64 timestamp;
@@ -23,34 +23,65 @@ struct {
     __type(value, struct conn_value);
     __uint(max_entries, 4096);
     __uint(pinning, LIBBPF_PIN_BY_NAME); // Pinned to /sys/fs/bpf.
-} conntrack_map SEC(".maps");
+} retina_conntrack_map SEC(".maps");
 
 
-void process_packet(struct conn_key *key, __u8 tcp_flags)
+int ct_process_packet(struct conn_key *key, __u8 tcp_flags)
 {
     struct conn_value *value;
+    __builtin_memset(value, 0, sizeof(value));
 
-    value = bpf_map_lookup_elem(&conntrack_map, key);
+    // Check if key is not NULL.
+    if (!key) {
+        return 0;
+    }
+
+    // Reconstruct the key
+    struct conn_key new_key;
+    __builtin_memset(&new_key, 0, sizeof(new_key));
+    new_key.src_ip = key->src_ip;
+    new_key.dst_ip = key->dst_ip;
+    new_key.src_port = key->src_port;
+    new_key.dst_port = key->dst_port;
+    new_key.protocol = key->protocol;
+
+    value = bpf_map_lookup_elem(&retina_conntrack_map, &new_key);
     if (!value) {
         // If the connection is not in the map, add it.
         struct conn_value new_value = {
             .timestamp = bpf_ktime_get_ns(),
             .flags = tcp_flags,
         };
-        bpf_map_update_elem(&conntrack_map, key, &new_value, BPF_NOEXIST);
+        bpf_map_update_elem(&retina_conntrack_map, &new_key, &new_value, BPF_NOEXIST);
     } else {
         // If the connection is in the map, update the flags.
         value->flags |= tcp_flags;
         // Update the timestamp.
         value->timestamp = bpf_ktime_get_ns();
     }
+    return 0;
 }
 
-bool check_flags(struct conn_key *key, __u32 packet_flags)
+bool ct_check_flags(struct conn_key *key, __u32 packet_flags)
 {
     struct conn_value *value;
+    __builtin_memset(value, 0, sizeof(value));
 
-    value = bpf_map_lookup_elem(&conntrack_map, key);
+    // Check if key is not NULL.
+    if (!key) {
+        return false;
+    }
+    
+    // Reconstruct the key
+    struct conn_key new_key;
+    __builtin_memset(&new_key, 0, sizeof(new_key));
+    new_key.src_ip = key->src_ip;
+    new_key.dst_ip = key->dst_ip;
+    new_key.src_port = key->src_port;
+    new_key.dst_port = key->dst_port;
+    new_key.protocol = key->protocol;
+        
+    value = bpf_map_lookup_elem(&retina_conntrack_map, &new_key);
     if (!value)
         return false; // If the connection is not in the map, return false.
 

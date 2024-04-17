@@ -18,6 +18,7 @@ type conntrackConnKey struct {
 	SrcPort  uint16
 	DstPort  uint16
 	Protocol uint8
+	_        [3]byte
 }
 
 type conntrackConnValue struct {
@@ -73,7 +74,7 @@ type conntrackProgramSpecs struct {
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type conntrackMapSpecs struct {
-	ConntrackMap *ebpf.MapSpec `ebpf:"conntrack_map"`
+	RetinaConntrackMap *ebpf.MapSpec `ebpf:"retina_conntrack_map"`
 }
 
 // conntrackObjects contains all objects after they have been loaded into the kernel.
@@ -95,12 +96,12 @@ func (o *conntrackObjects) Close() error {
 //
 // It can be passed to loadConntrackObjects or ebpf.CollectionSpec.LoadAndAssign.
 type conntrackMaps struct {
-	ConntrackMap *ebpf.Map `ebpf:"conntrack_map"`
+	RetinaConntrackMap *ebpf.Map `ebpf:"retina_conntrack_map"`
 }
 
 func (m *conntrackMaps) Close() error {
 	return _ConntrackClose(
-		m.ConntrackMap,
+		m.RetinaConntrackMap,
 	)
 }
 

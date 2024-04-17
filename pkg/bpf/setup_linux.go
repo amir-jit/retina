@@ -69,6 +69,13 @@ func Setup(l *log.ZapLogger) {
 	}
 	l.Info("Deleted existing filter map file", zap.String("path", plugincommon.FilterMapPath), zap.String("Map name", plugincommon.FilterMapName))
 
+	// Delete existing conntrack map file.
+	err = os.Remove(plugincommon.ConntrackMapPath + "/" + plugincommon.ConntrackMapName)
+	if err != nil && !os.IsNotExist(err) {
+		l.Panic("Failed to delete existing conntrack map file", zap.Error(err))
+	}
+	l.Info("Deleted existing conntrack map file", zap.String("path", plugincommon.ConntrackMapPath), zap.String("Map name", plugincommon.ConntrackMapName))
+
 	// Initialize the filter map.
 	// This will create the filter map in kernel and pin it to /sys/fs/bpf.
 	_, err = filter.Init()

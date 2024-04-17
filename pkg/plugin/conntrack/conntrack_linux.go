@@ -62,7 +62,7 @@ func Init() (*Conntrack, error) {
 	ct.objs = objs
 
 	// Get the conntrack map from the objects
-	ct.ctmap = objs.conntrackMaps.ConntrackMap
+	ct.ctmap = objs.conntrackMaps.RetinaConntrackMap
 
 	return ct, nil
 }

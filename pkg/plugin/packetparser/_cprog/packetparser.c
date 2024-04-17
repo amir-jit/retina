@@ -232,21 +232,24 @@ static void parse(struct __sk_buff *skb, direction d)
 		// Check if packet is TCP
 		if (ip->protocol == IPPROTO_TCP) {
 			// Convert packet to 5 tuple.
-			struct conn_key key = {
-				.src_ip = p.src_ip,
-				.dst_ip = p.dst_ip,
-				.src_port = p.src_port,
-				.dst_port = p.dst_port,
-				.protocol = p.proto
-			};
+			struct conn_key key;
+			__builtin_memset(&key, 0, sizeof(key));
+			key.src_ip = p.src_ip;
+			key.dst_ip = p.dst_ip;
+			key.src_port = p.src_port;
+			key.dst_port = p.dst_port;
+			key.protocol = p.proto;
+
+			__u32 flags = p.tcp_metadata.syn | p.tcp_metadata.ack | p.tcp_metadata.fin | p.tcp_metadata.rst | p.tcp_metadata.psh | p.tcp_metadata.urg;
+
 			// Check if the packet flags have been seen before.
-			if (check_flags(&key, p.tcp_metadata.syn | p.tcp_metadata.ack | p.tcp_metadata.fin | p.tcp_metadata.rst | p.tcp_metadata.psh | p.tcp_metadata.urg)) {
+			if (ct_check_flags(&key, flags)) {
 				// If the flags have been seen before, process the packet in the conntrack map to update the timestamp and then return.
-				process_packet(&key, p.tcp_metadata.syn | p.tcp_metadata.ack | p.tcp_metadata.fin | p.tcp_metadata.rst | p.tcp_metadata.psh | p.tcp_metadata.urg);
+				ct_process_packet(&key, flags);
 				return;
 			}
 			// Process the packet in the conntrack map.
-			process_packet(&key, p.tcp_metadata.syn | p.tcp_metadata.ack | p.tcp_metadata.fin | p.tcp_metadata.rst | p.tcp_metadata.psh | p.tcp_metadata.urg);
+			ct_process_packet(&key, flags);
 		}
 		bpf_perf_event_output(skb, &packetparser_events, BPF_F_CURRENT_CPU, &p, sizeof(p));
 	} else {

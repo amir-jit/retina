@@ -14,6 +14,7 @@ import (
 	"github.com/microsoft/retina/internal/ktime"
 	"github.com/microsoft/retina/pkg/log"
 	plugincommon "github.com/microsoft/retina/pkg/plugin/common"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
@@ -44,11 +45,11 @@ func Init() (*Conntrack, error) {
 	// Allow the current process to lock memory for eBPF resources.
 	if err := rlimit.RemoveMemlock(); err != nil {
 		ct.l.Error("RemoveMemlock failed", zap.Error(err))
-		return ct, err
+		return ct, errors.Wrapf(err, "failed to remove memlock limit")
 	}
 
 	objs := &conntrackObjects{}
-	err := loadConntrackObjects(objs, &ebpf.CollectionOptions{ //nolint:typecheck
+	err := loadConntrackObjects(objs, &ebpf.CollectionOptions{
 		Maps: ebpf.MapOptions{
 			PinPath: plugincommon.ConntrackMapPath,
 		},
@@ -80,10 +81,12 @@ func (ct *Conntrack) gc(timeout time.Duration) {
 	var key conntrackCtKey
 	var value conntrackCtValue
 
+	var noOfCtEntries, noOfCtEntriesDeleted int
+
 	iter := ct.ctmap.Iterate()
 	for iter.Next(&key, &value) {
-		ct.l.Info("ct_key", zap.Uint32("src_ip", key.SrcIp), zap.Uint32("dst_ip", key.DstIp), zap.Uint16("src_port", key.SrcPort), zap.Uint16("dst_port", key.DstPort), zap.Uint8("proto", key.Protocol))
-		ct.l.Info("ct_value", zap.Uint64("timestamp", value.Timestamp), zap.Uint8("is_closed", value.IsClosed))
+		ct.l.Debug("ct_key", zap.Uint32("src_ip", key.SrcIp), zap.Uint32("dst_ip", key.DstIp), zap.Uint16("src_port", key.SrcPort), zap.Uint16("dst_port", key.DstPort), zap.Uint8("proto", key.Protocol))
+		ct.l.Debug("ct_value", zap.Uint64("timestamp", value.Timestamp), zap.Uint8("is_closed", value.IsClosed))
 
 		// If the entry is marked as isClosed, delete the key and continue
 		if value.IsClosed == 1 {
@@ -98,6 +101,7 @@ func (ct *Conntrack) gc(timeout time.Duration) {
 			if err != nil {
 				ct.l.Error("failed to delete conntrack entry", zap.Error(err))
 			}
+			noOfCtEntriesDeleted++
 			continue
 		}
 
@@ -116,9 +120,11 @@ func (ct *Conntrack) gc(timeout time.Duration) {
 			if err != nil {
 				ct.l.Error("failed to delete conntrack entry", zap.Error(err))
 			}
+			noOfCtEntriesDeleted++
 		}
 	}
-
+	// Log the number of entries and the number of entries deleted
+	ct.l.Info("Conntrack GC loop completed", zap.Int("no_of_ct_entries", noOfCtEntries), zap.Int("no_of_ct_entries_deleted", noOfCtEntriesDeleted))
 }
 
 // Start starts the Conntrack GC loop. It runs every 30 seconds and deletes entries older than 5 minutes.

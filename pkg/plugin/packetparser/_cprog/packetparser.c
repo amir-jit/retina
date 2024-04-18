@@ -213,24 +213,8 @@ static void parse(struct __sk_buff *skb, direction d)
 		{
 			p.tcp_metadata = tcp_metadata;
 		}
-	}
-	else if (ip->protocol == IPPROTO_UDP)
-	{
-		struct udphdr *udp = data + sizeof(struct ethhdr) + sizeof(struct iphdr);
-		if (data + sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr) > data_end)
-			return;
 
-		p.src_port = udp->source;
-		p.dst_port = udp->dest;
-	}
-	else
-	{
-		return;
-	}
-	// If MONITOR_AGGREGATE is 1, we will sent the packet to the perf buffer if the packet contains unseen flags.
-	if (MONITOR_AGGREGATE == 1) {
-		// Check if packet is TCP
-		if (ip->protocol == IPPROTO_TCP) {
+		if (MONITOR_AGGREGATE == 1) {
 			// Convert packet to 5 tuple.
 			struct ct_key key;
 			__builtin_memset(&key, 0, sizeof(key));
@@ -250,7 +234,18 @@ static void parse(struct __sk_buff *skb, direction d)
 			}
 			// Process the packet in the conntrack map.
 			ct_process_packet(&key, flags);
-		} else if (ip->protocol == IPPROTO_UDP) {
+		}
+	}
+	else if (ip->protocol == IPPROTO_UDP)
+	{
+		struct udphdr *udp = data + sizeof(struct ethhdr) + sizeof(struct iphdr);
+		if (data + sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr) > data_end)
+			return;
+
+		p.src_port = udp->source;
+		p.dst_port = udp->dest;
+
+		if (MONITOR_AGGREGATE == 1) {
 			// Convert packet to 5 tuple.
 			struct ct_key key;
 			__builtin_memset(&key, 0, sizeof(key));
@@ -263,17 +258,21 @@ static void parse(struct __sk_buff *skb, direction d)
 
 			// Check if the packet flags have been seen before.
 			if (ct_check_flags(&key, flags)) {
-				// If the flags have been seen before, process the packet in the conntrack map to update the timestamp and then return.
-				ct_process_packet(&key, flags);	
+				// If the flags have been seen before, process the packet in the conntrack map to update the timestamp and then 
+				// return immediately instead of sending it to the perf buffer.
+				ct_process_packet(&key, flags);
 				return;
 			}
 			// Process the packet in the conntrack map.
 			ct_process_packet(&key, flags);
 		}
-		bpf_perf_event_output(skb, &packetparser_events, BPF_F_CURRENT_CPU, &p, sizeof(p));
-	} else {
-		bpf_perf_event_output(skb, &packetparser_events, BPF_F_CURRENT_CPU, &p, sizeof(p));
 	}
+	else
+	{
+		return;
+	}
+	bpf_perf_event_output(skb, &packetparser_events, BPF_F_CURRENT_CPU, &p, sizeof(p));
+	
 }
 
 SEC("classifier_endpoint_ingress")

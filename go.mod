@@ -273,10 +273,10 @@ require (
 	github.com/microsoft/ApplicationInsights-Go v0.4.4
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/ginkgo/v2 v2.17.1
-	github.com/onsi/gomega v1.32.0
+	github.com/onsi/gomega v1.33.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_model v0.6.0
-	github.com/prometheus/common v0.52.3
+	github.com/prometheus/common v0.53.0
 	github.com/safchain/ethtool v0.3.0
 	github.com/spf13/viper v1.18.2
 	github.com/vishvananda/netlink v1.2.1-beta.2.0.20231127184239-0ced8385386a

@@ -30,6 +30,7 @@ import (
 	"github.com/microsoft/retina/pkg/metrics"
 	"github.com/microsoft/retina/pkg/plugin/api"
 	plugincommon "github.com/microsoft/retina/pkg/plugin/common"
+	_ "github.com/microsoft/retina/pkg/plugin/conntrack/_cprog"       // nolint
 	_ "github.com/microsoft/retina/pkg/plugin/lib/_amd64"             // nolint
 	_ "github.com/microsoft/retina/pkg/plugin/lib/_arm64"             // nolint
 	_ "github.com/microsoft/retina/pkg/plugin/lib/common/libbpf/_src" // nolint
@@ -42,7 +43,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go@master -cc clang-14 -cflags "-g -O2 -Wall -D__TARGET_ARCH_${GOARCH} -Wall" -target ${GOARCH} -type packet packetparser ./_cprog/packetparser.c -- -I../lib/_${GOARCH} -I../lib/common/libbpf/_src -I../filter/_cprog/
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go@master -cc clang-14 -cflags "-g -O2 -Wall -D__TARGET_ARCH_${GOARCH} -Wall" -target ${GOARCH} -type packet packetparser ./_cprog/packetparser.c -- -I../lib/_${GOARCH} -I../lib/common/libbpf/_src -I../filter/_cprog/ -I../conntrack/_cprog/
 
 // New creates a packetparser plugin.
 func New(cfg *kcfg.Config) api.Plugin {
@@ -95,13 +96,14 @@ func (p *packetParser) Compile(ctx context.Context) error {
 	arch := runtime.GOARCH
 	includeDir := fmt.Sprintf("-I%s/../lib/_%s", dir, arch)
 	filterDir := fmt.Sprintf("-I%s/../filter/_cprog/", dir)
+	conntrackDir := fmt.Sprintf("-I%s/../conntrack/_cprog/", dir)
 	libbpfDir := fmt.Sprintf("-I%s/../lib/common/libbpf/_src", dir)
 	targetArch := "-D__TARGET_ARCH_x86"
 	if arch == "arm64" {
 		targetArch = "-D__TARGET_ARCH_arm64"
 	}
 	// Keep target as bpf, otherwise clang compilation yields bpf object that elf reader cannot load.
-	err = loader.CompileEbpf(ctx, "-target", "bpf", "-Wall", targetArch, "-g", "-O2", "-c", bpfSourceFile, "-o", bpfOutputFile, includeDir, libbpfDir, filterDir)
+	err = loader.CompileEbpf(ctx, "-target", "bpf", "-Wall", targetArch, "-g", "-O2", "-c", bpfSourceFile, "-o", bpfOutputFile, includeDir, libbpfDir, filterDir, conntrackDir)
 	if err != nil {
 		return err
 	}

@@ -6,6 +6,7 @@
 #include "bpf_endian.h"
 #include "packetparser.h"
 #include "retina_filter.c"
+#include "conntrack.c"
 #include "dynamic.h"
 
 char __license[] SEC("license") = "Dual MIT/GPL";
@@ -212,6 +213,28 @@ static void parse(struct __sk_buff *skb, direction d)
 		{
 			p.tcp_metadata = tcp_metadata;
 		}
+
+		if (MONITOR_AGGREGATE == 1) {
+			// Convert packet to 5 tuple.
+			struct ct_key key;
+			__builtin_memset(&key, 0, sizeof(key));
+			key.src_ip = p.src_ip;
+			key.dst_ip = p.dst_ip;
+			key.src_port = p.src_port;
+			key.dst_port = p.dst_port;
+			key.protocol = p.proto;
+
+			__u32 flags = p.tcp_metadata.syn | p.tcp_metadata.ack | p.tcp_metadata.fin | p.tcp_metadata.rst | p.tcp_metadata.psh | p.tcp_metadata.urg;
+
+			// Check if the packet flags have been seen before.
+			if (ct_check_flags(&key, flags)) {
+				// If the flags have been seen before, process the packet in the conntrack map to update the timestamp and then return.
+				ct_process_packet(&key, flags);
+				return;
+			}
+			// Process the packet in the conntrack map.
+			ct_process_packet(&key, flags);
+		}
 	}
 	else if (ip->protocol == IPPROTO_UDP)
 	{
@@ -221,13 +244,35 @@ static void parse(struct __sk_buff *skb, direction d)
 
 		p.src_port = udp->source;
 		p.dst_port = udp->dest;
+
+		if (MONITOR_AGGREGATE == 1) {
+			// Convert packet to 5 tuple.
+			struct ct_key key;
+			__builtin_memset(&key, 0, sizeof(key));
+			// We are ignoring the source and destination ports for UDP packets.
+			key.src_ip = p.src_ip;
+			key.dst_ip = p.dst_ip;
+			key.protocol = p.proto;
+
+			__u32 flags = 1;
+
+			// Check if the packet flags have been seen before.
+			if (ct_check_flags(&key, flags)) {
+				// If the flags have been seen before, process the packet in the conntrack map to update the timestamp and then 
+				// return immediately instead of sending it to the perf buffer.
+				ct_process_packet(&key, flags);
+				return;
+			}
+			// Process the packet in the conntrack map.
+			ct_process_packet(&key, flags);
+		}
 	}
 	else
 	{
 		return;
 	}
-
 	bpf_perf_event_output(skb, &packetparser_events, BPF_F_CURRENT_CPU, &p, sizeof(p));
+	
 }
 
 SEC("classifier_endpoint_ingress")

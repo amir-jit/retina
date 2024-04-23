@@ -7,6 +7,8 @@
 // tc-bpf return code to execute the next tc-bpf program.
 #define TC_ACT_UNSPEC   (-1)
 
+#define MONITOR_AGGREGATE 1
+
 typedef enum
 {
     FROM_ENDPOINT = 0,

@@ -104,3 +104,5 @@ func ToPrometheusType(metric interface{}) prometheus.Collector {
 		return nil
 	}
 }
+
+type DropReasonType uint32

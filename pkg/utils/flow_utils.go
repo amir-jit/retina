@@ -147,6 +147,21 @@ func AddTCPFlags(f *flow.Flow, syn, ack, fin, rst, psh, urg uint16) {
 	}
 }
 
+func AddTcpFlagsBool(f *flow.Flow, syn, ack, fin, rst, psh, urg bool) {
+	if f.GetL4().GetTCP() == nil {
+		return
+	}
+
+	f.L4.GetTCP().Flags = &flow.TCPFlags{
+		SYN: syn,
+		ACK: ack,
+		FIN: fin,
+		RST: rst,
+		PSH: psh,
+		URG: urg,
+	}
+}
+
 // Add TSval/TSecr to the flow's metadata as TCP ID.
 // The TSval/TSecr works as ID for the flow.
 // We will use this ID to calculate latency.
@@ -271,20 +286,7 @@ func AddDropReason(f *flow.Flow, meta *RetinaMetadata, dropReason uint32) {
 		SubType: int32(api.TraceToNetwork), // This is a drop event and direction is determined later.
 	}
 
-	// Set the drop reason.
-	// Retina drop reasons are different from the drop reasons available in flow library.
-	// We map the ones available in flow library to the ones available in Retina.
-	// Rest are set to UNKNOWN. The details are added in the metadata.
-	switch meta.GetDropReason() { //nolint:exhaustive // We are handling all the cases.
-	case DropReason_IPTABLE_RULE_DROP:
-		f.DropReasonDesc = flow.DropReason_POLICY_DENIED
-	case DropReason_IPTABLE_NAT_DROP:
-		f.DropReasonDesc = flow.DropReason_SNAT_NO_MAP_FOUND
-	case DropReason_CONNTRACK_ADD_DROP:
-		f.DropReasonDesc = flow.DropReason_UNKNOWN_CONNECTION_TRACKING_STATE
-	default:
-		f.DropReasonDesc = flow.DropReason_DROP_REASON_UNKNOWN
-	}
+	f.DropReasonDesc = GetDropReasonDesc(meta.GetDropReason())
 }
 
 func DropReasonDescription(f *flow.Flow) string {

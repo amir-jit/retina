@@ -242,7 +242,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/net v0.26.0 // indirect
 	golang.org/x/oauth2 v0.19.0 // indirect
-	golang.org/x/sync v0.7.0
+	golang.org/x/sync v0.8.0
 	golang.org/x/sys v0.21.0
 	golang.org/x/term v0.21.0 // indirect
 	google.golang.org/protobuf v1.34.2
@@ -281,7 +281,7 @@ require (
 	github.com/go-logr/zapr v1.3.0
 	github.com/google/gopacket v1.1.19
 	github.com/inspektor-gadget/inspektor-gadget v0.27.0
-	github.com/jellydator/ttlcache/v3 v3.1.1
+	github.com/jellydator/ttlcache/v3 v3.2.1
 	github.com/jsternberg/zap-logfmt v1.3.0
 	github.com/microsoft/ApplicationInsights-Go v0.4.4
 	github.com/onsi/ginkgo/v2 v2.19.0

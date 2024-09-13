@@ -8,7 +8,7 @@ require (
 	github.com/prometheus/client_golang v1.19.1
 	github.com/spf13/cobra v1.8.1
 	go.uber.org/zap v1.26.0
-	k8s.io/client-go v0.30.1
+	k8s.io/client-go v0.31.1
 )
 
 require (
@@ -82,6 +82,7 @@ require (
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
+	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
 	github.com/go-gorp/gorp/v3 v3.1.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -105,7 +106,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/gnostic-models v0.6.9-0.20230804172637-c7be7c783f49 // indirect
-	github.com/google/pprof v0.0.0-20240424215950-a892ee059fd6 // indirect
+	github.com/google/pprof v0.0.0-20240525223248-4bfdf5a9a2af // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
@@ -152,7 +153,7 @@ require (
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/locker v1.0.1 // indirect
 	github.com/moby/moby v26.0.0+incompatible // indirect
-	github.com/moby/spdystream v0.2.0 // indirect
+	github.com/moby/spdystream v0.4.0 // indirect
 	github.com/moby/sys/mountinfo v0.7.1 // indirect
 	github.com/moby/sys/sequential v0.5.0 // indirect
 	github.com/moby/sys/signal v0.7.0 // indirect
@@ -192,6 +193,7 @@ require (
 	github.com/tklauser/go-sysconf v0.3.11 // indirect
 	github.com/tklauser/numcpus v0.7.0 // indirect
 	github.com/vishvananda/netns v0.0.4 // indirect
+	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
@@ -216,19 +218,20 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20240311132316-a219d84964c2 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240314234333-6e1732d8331c // indirect
 	google.golang.org/grpc v1.62.1 // indirect
+	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	k8s.io/apiserver v0.30.1 // indirect
 	k8s.io/component-base v0.30.1 // indirect
 	k8s.io/cri-api v0.30.1 // indirect
 	oras.land/oras-go v1.2.5 // indirect
-	sigs.k8s.io/kustomize/api v0.14.0 // indirect
-	sigs.k8s.io/kustomize/kyaml v0.14.3 // indirect
+	sigs.k8s.io/kustomize/api v0.17.2 // indirect
+	sigs.k8s.io/kustomize/kyaml v0.17.1 // indirect
 )
 
 require (
 	github.com/go-chi/chi v4.1.2+incompatible
-	github.com/go-logr/logr v1.4.1 // indirect
+	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-cmp v0.6.0
@@ -241,18 +244,18 @@ require (
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/net v0.26.0 // indirect
-	golang.org/x/oauth2 v0.19.0 // indirect
+	golang.org/x/oauth2 v0.21.0 // indirect
 	golang.org/x/sync v0.7.0
 	golang.org/x/sys v0.21.0
 	golang.org/x/term v0.21.0 // indirect
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/api v0.30.1
-	k8s.io/apimachinery v0.30.1
-	k8s.io/klog/v2 v2.120.1 // indirect
+	k8s.io/api v0.31.1
+	k8s.io/apimachinery v0.31.1
+	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340 // indirect
-	k8s.io/utils v0.0.0-20240102154912-e7106e64919e
+	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 	sigs.k8s.io/yaml v1.4.0
@@ -302,7 +305,7 @@ require (
 	gotest.tools/v3 v3.5.1
 	helm.sh/helm/v3 v3.15.2
 	k8s.io/apiextensions-apiserver v0.30.1
-	k8s.io/cli-runtime v0.30.1
+	k8s.io/cli-runtime v0.31.1
 	k8s.io/kubectl v0.30.1
 	sigs.k8s.io/controller-runtime v0.18.4
 )
